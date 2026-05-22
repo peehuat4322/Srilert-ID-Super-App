@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Srilert ID - ระบบพิสูจน์และยืนยันตัวตนดิจิทัล</title>
+    
+    <!-- นำเข้า Google Fonts (Prompt & Sarabun) เพื่อความเป็นทางการและสวยงาม -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome 6 สำหรับการใช้ไอคอนระดับแอปพลิเคชันสากล -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- นำเข้าโมดูลกล้องสำหรับสแกนคิวอาร์โค้ดจริง -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <style>
+        :root {
+            --navy-dark: #090e1a;
+            --gov-blue: #122240;
+            --royal-blue: #1d3557;
+            --active-blue: #007aff;
+            --neutral-bg: #f3f4f6;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --gold-accent: #d97706;
+            --emerald-green: #10b981;
+            --danger-red: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Sarabun', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #030712;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 8px;
+        }
+
+        /* จำลองหน้าจอมือถืออัตราส่วน 19.5:9 */
+        .phone-mockup {
+            width: 100%;
+            max-width: 390px;
+            height: 844px;
+            background-color: var(--neutral-bg);
+            border-radius: 42px;
+            border: 9px solid #1f2937;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* แถบสถานะจำลองความสมบูรณ์แบบบนหัวจอมือถือ */
+        .status-bar-header {
+            background-color: var(--navy-dark);
+            color: #ffffff;
+            padding: 8px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            z-index: 10;
+        }
+
+        /* ส่วนหัวแอปอย่างเป็นทางการของจังหวัดศรีเลิศ */
+        .app-main-navigation {
+            background: linear-gradient(180deg, var(--navy-dark) 0%, var(--gov-blue) 100%);
+            color: #ffffff;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .app-main-navigation h1 {
+            font-family: 'Prompt', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .app-main-navigation p {
+            font-size: 10px;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+
+        /* พื้นที่เนื้อหาในแอปที่เลื่อนขึ้นลงได้ */
+        .main-app-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            padding-bottom: 90px; /* เว้นระยะจากแถบเมนูล่าง */
+            position: relative;
+        }
+
+        /* --- หน้าจอเข้าสู่ระบบและลงทะเบียน --- */
+        #auth-gate-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, var(--navy-dark) 0%, var(--royal-blue) 100%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 40px 24px;
+            overflow-y: auto;
+        }
+
+        .brand-section {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .brand-crest {
+            width: 70px;
+            height: 70px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            margin: 0 auto 14px auto;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.1);
+        }
+
+        .brand-section h2 {
+            font-family: 'Prompt', sans-serif;
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+        }
+
+        .brand-section p {
+            color: #9ca3af;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        /* กล่องอินพุตสำหรับหน้าลงทะเบียนและเข้าสู่ระบบ */
+        .auth-form-wrapper {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 16px;
+            margin: 15px 0;
+        }
+
+        .input-group-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .input-group-field:last-child {
+            margin-bottom: 0;
+        }
+
+        .input-group-field label {
+            color: #cbd5e1;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .input-group-field input {
+            background-color: rgba(255, 255, 255, 0.95);
+            color: var(--navy-dark);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 14px;
+            font-weight: 600;
+            outline: none;
+        }
+
+        /* ดีไซน์ปุ่มกดรหัส PIN และตัวบ่งชี้วงกลม */
+        .pin-indicator-group {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            margin: 16px 0;
+        }
+
+        .pin-circle-dot {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transition: all 0.15s ease;
+        }
+
+        .pin-circle-dot.filled {
+            background-color: var(--emerald-green);
+            border-color: var(--emerald-green);
+            box-shadow: 0 0 10px var(--emerald-green);
+        }
+
+        .keypad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            width: 100%;
+            max-width: 260px;
+            margin: 0 auto;
+        }
+
+        .keypad-button {
+            background-color: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 600;
+            height: 52px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .keypad-button:active {
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .keypad-button.action-text {
+            background-color: transparent;
+            border: none;
+            font-size: 11px;
+            font-weight: bold;
+            color: #9ca3af;
+        }
+
+        .toggle-screen-btn {
+            background: transparent;
+            border: none;
+            color: #38bdf8;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: underline;
+            text-align: center;
+            margin-top: 14px;
+            width: 100%;
+        }
+
+        /* ข้อความแจ้งเตือนข้อผิดพลาด */
+        .error-message-alert {
+            color: #f87171;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 6px;
+            min-height: 16px;
+        }
+
+        /* --- บัตรประจำตัวประชาชน 3D Flip --- */
+        .identity-card-perspective {
+            width: 100%;
+            height: 215px;
+            perspective: 1000px;
+            margin-bottom: 16px;
+        }
+
+        .identity-card-rotator {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .identity-card-rotator.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face-side {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            border-radius: 16px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .card-face-side.front-face {
+            background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #ecf5ff 100%);
+            border: 1px solid #bae6fd;
+        }
+
+        .card-face-side.back-face {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border: 1px solid #cbd5e1;
+            transform: rotateY(180deg);
+        }
+
+        .card-main-title {
+            font-size: 9px;
+            font-weight: bold;
+            color: var(--gov-blue);
+            border-bottom: 1.5px solid rgba(18, 34, 64, 0.1);
+            padding-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-grid-body {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+            flex: 1;
+        }
+
+        .photo-holder-box {
+            width: 76px;
+            height: 98px;
+            background-color: #cbd5e1;
+            border-radius: 6px;
+            border: 1px solid #94a3b8;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .photo-holder-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .details-holder-box {
+            flex: 1;
+            font-size: 11px;
+            color: var(--text-main);
+            line-height: 1.4;
+        }
+
+        .national-id-formatted {
+            font-family: 'Prompt', sans-serif;
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--danger-red);
+            margin-bottom: 2px;
+            letter-spacing: 0.2px;
+        }
+
+        .card-text-row {
+            display: flex;
+            margin-bottom: 1px;
+        }
+
+        .card-text-label {
+            color: var(--text-muted);
+            font-weight: 600;
+            width: 55px;
+            flex-shrink: 0;
+        }
+
+        .flip-action-button {
+            background-color: var(--royal-blue);
+            color: #ffffff;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            align-self: flex-end;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ส่วนหลังบัตรประชาชน */
+        .laser-code-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .laser-code-container p {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: bold;
+        }
+
+        .laser-code-label {
+            font-family: 'Prompt', sans-serif;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 2.5px;
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
+            padding: 6px 16px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-top: 6px;
+        }
+
+        .simulated-barcode {
+            width: 80%;
+            height: 35px;
+            background: repeating-linear-gradient(90deg, #1f2937, #1f2937 2px, #ffffff 2px, #ffffff 6px);
+            margin: 18px auto 0 auto;
+            border: 1px solid #94a3b8;
+        }
+
+        /* กล่องข้อมูลทั่วไปของระบบ */
+        .generic-info-card {
+            background-color: #ffffff;
+            border-radius: 14px;
+            padding: 14px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+
+        .generic-info-card h3 {
+            font-family: 'Prompt', sans-serif;
+            font-size: 12px;
+            color: var(--gov-blue);
+            margin-bottom: 8px;
+            border-bottom: 1px solid #f3f4f6;
+            padding-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .generic-info-card p {
+            font-size: 12px;
+            color: var(--text-main);
+            line-height: 1.5;
+        }
+
+        /* ระบบรักษาความปลอดภัยเลเซอร์และคิวอาร์โค้ด */
+        .secure-qr-scaffold {
+            background-color: #ffffff;
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 12px;
+        }
+
+        .secure-qr-box {
+            width: 135px;
+            height: 135px;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 4px solid #ffffff;
+            border-radius: 12px;
+            margin: 0 auto 10px auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .qr-seal-center {
+            background: #ffffff;
+            color: var(--gov-blue);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 800;
+            font-size: 12px;
+            z-index: 5;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .qr-noise-pattern {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                radial-gradient(circle, #ffffff 10%, transparent 10%),
+                linear-gradient(90deg, transparent 15%, #ffffff 15%);
+            background-size: 15px 15px, 10px 10px;
+            opacity: 0.15;
+        }
+
+        .laser-sweep-line {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 2.5px;
+            background-color: var(--emerald-green);
+            box-shadow: 0 0 10px var(--emerald-green);
+            animation: sweep 2.5s infinite ease-in-out;
+            z-index: 4;
+        }
+
+        @keyframes sweep {
+            0% { top: 10%; }
+            50% { top: 90%; }
+            100% { top: 10%; }
+        }
+
+        /* คลังเอกสาร */
+        .document-item-card {
+            background-color: #ffffff;
+            border-radius: 14px;
+            padding: 14px;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .document-meta-side h4 {
+            font-family: 'Prompt', sans-serif;
+            font-size: 13px;
+            color: var(--text-main);
+        }
+
+        .document-meta-side p {
+            font-size: 10px;
+            color: var(--emerald-green);
+            font-weight: bold;
+            margin-top: 2px;
+        }
+
+        /* หน้าต่างกล้องสำหรับสแกนคิวอาร์จริง */
+        .scanner-camera-viewport {
+            background-color: #000000;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid var(--gov-blue);
+            min-height: 240px;
+        }
+
+        #reader {
+            width: 100% !important;
+            background: #000000;
+            border: none !important;
+        }
+
+        /* ประวัติบันทึกความปลอดภัย */
+        .log-list-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            padding: 8px 0;
+            border-bottom: 1px dashed #e5e7eb;
+        }
+
+        .log-list-row:last-child {
+            border-bottom: none;
+        }
+
+        /* หน้าต่าง Pop-up แสดงเอกสารเต็มรูปแบบ */
+        .modal-overlay-backdrop {
+            display: none;
+            position: absolute;
+            inset: 0;
+            background-color: rgba(9, 14, 26, 0.85);
+            backdrop-filter: blur(2px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-popup-panel {
+            background-color: #ffffff;
+            border-radius: 20px;
+            padding: 20px;
+            width: 100%;
+            max-height: 85%;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        /* ส้นควบคุมเมนูล่าง Dock */
+        .navigation-dock-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 75px;
+            background-color: #ffffff;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding-bottom: 12px;
+            z-index: 50;
+        }
+
+        .navigation-dock-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 9px;
+            font-weight: 700;
+            width: 16%;
+            text-align: center;
+        }
+
+        .navigation-dock-item i {
+            font-size: 18px;
+        }
+
+        .navigation-dock-item.active {
+            color: var(--active-blue);
+        }
+
+        /* วิดีโอเซลฟี่ */
+        #selfie-webcam {
+            width: 100%;
+            border-radius: 12px;
+            margin-top: 8px;
+            border: 2px solid var(--active-blue);
+        }
+    </style>
+</head>
+<body>
+
+<div class="phone-mockup">
+    <!-- แถบระบบปฏิบัติการมือถือ -->
+    <div class="status-bar-header">
+        <div>SRILERT SERVICE</div>
+        <div style="display:flex; gap:6px;">
+            <i class="fa-solid fa-wifi"></i>
+            <i class="fa-solid fa-signal"></i>
+            <i class="fa-solid fa-battery-full"></i>
+        </div>
+    </div>
+
+    <!-- หน้าต่างล็อกอินผ่านรหัสความปลอดภัย และ สมัครบัญชีประชาชนใหม่ -->
+    <div id="auth-gate-screen">
+        <div class="brand-section">
+            <div class="brand-crest">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h2 id="ui-gate-title">Srilert ID เข้าสู่ระบบ</h2>
+            <p id="ui-gate-subtitle">ระบบพิสูจน์และยืนยันตัวตนดิจิทัลส่วนบุคคล</p>
+            <div id="auth-error-output" class="error-message-alert"></div>
+        </div>
+
+        <!-- ฟอร์มสลับระหว่างล็อกอิน และลงทะเบียนประวัติ -->
+        <div id="auth-dynamic-inputs">
+            <div class="auth-form-wrapper">
+                <div class="input-group-field">
+                    <label>เลขประจำตัวประชาชน 13 หลัก</label>
+                    <!-- บล็อกเดาคำทั้งหมด -->
+                    <input type="text" id="citizen-id-input" maxlength="13" placeholder="กรอกเลขบัตรประชาชน" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" inputmode="numeric">
+                </div>
+            </div>
+        </div>
+
+        <!-- ระบบกรอกรหัส PIN 6 หลักจำลอง -->
+        <div id="pin-numeric-sec">
+            <div class="pin-
